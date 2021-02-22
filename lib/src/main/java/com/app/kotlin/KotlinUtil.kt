@@ -43,3 +43,4 @@ inline fun <T> Boolean?.condition(truePart: T, falsePart: T): T {
 inline fun <T> Boolean?.condition(truePart: () -> T, falsePart: () -> T): T {
     return if (this == true) truePart() else falsePart()
 }
+
