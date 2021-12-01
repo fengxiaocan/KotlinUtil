@@ -16,6 +16,9 @@ inline fun <T> T?.isEmpty(): Boolean {
     if (this == null) {
         return true
     } else {
+        if (this is CharSequence) {
+            return this.length == 0
+        }
         if (this is Array<*>) {
             return this.size == 0
         }
@@ -38,6 +41,41 @@ inline fun <T> T?.isEmpty(): Boolean {
             return this.size() == 0
         }
         return false
+    }
+}
+
+/**
+ * 判断对象是否为空
+ */
+inline fun <T> T?.size(): Int {
+    if (this == null) {
+        return 0
+    } else {
+        if (this is CharSequence) {
+            return this.length
+        }
+        if (this is Array<*>) {
+            return this.size
+        }
+        if (this is Collection<*>) {
+            return this.size
+        }
+        if (this is Map<*, *>) {
+            return this.size
+        }
+        if (this is SimpleArrayMap<*, *>) {
+            return this.size()
+        }
+        if (this is SparseArray<*>) {
+            return this.size()
+        }
+        if (this is SparseBooleanArray) {
+            return this.size()
+        }
+        if (this is SparseIntArray) {
+            return this.size()
+        }
+        return 0
     }
 }
 

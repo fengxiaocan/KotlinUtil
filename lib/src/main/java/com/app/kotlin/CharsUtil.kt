@@ -9,6 +9,7 @@ import java.net.URLDecoder
 import java.net.URLEncoder
 import java.nio.charset.Charset
 import java.security.MessageDigest
+import java.util.regex.Pattern
 import kotlin.experimental.and
 
 /**
@@ -44,6 +45,14 @@ inline fun String?.limit(length:Int):String {
 }
 
 /**
+ * 判断字符串是否为null或全为空格
+ * @return {@code true}: null或全空格<br> {@code false}: 不为null且不全空格
+ */
+inline fun String?.isTrimEmpty():Boolean {
+    return this == null || this.trim {it <= ' '}.isEmpty()
+}
+
+/**
  * 判断字符串中是否包含多个字符串
  * @return
  */
@@ -55,6 +64,38 @@ inline fun String?.contains(vararg agr:String):Boolean {
         }
     }
     return true
+}
+
+/**
+ * 获取url的后缀
+ */
+inline fun String?.urlSuffix():String {
+    return this?.let {
+        val of = it.lastIndexOf('.')
+        if(of > 0) {
+            it.substring(of)
+        } else {
+            ""
+        }
+    } ?: let {
+        ""
+    }
+}
+
+/**
+ * 获取url的中的文件名
+ */
+inline fun String?.urlFileName(url:String):String? {
+    return this?.let {
+        val of = url.lastIndexOf('/')
+        if(of > 0) {
+            it.substring(of + 1)
+        } else {
+            ""
+        }
+    } ?: let {
+        ""
+    }
 }
 
 /**
@@ -135,6 +176,42 @@ inline fun String?.toLong():Long {
             return@toLong 0.toLong()
         }
     } ?: let {return@toLong 0.toLong()}
+}
+
+/**
+ * 字符串转布尔
+ *
+ * @param b
+ * @return 转换异常返回 false
+ */
+inline fun String?.toBoolean():Boolean {
+    this?.let {
+        try {
+            return@toBoolean java.lang.Boolean.parseBoolean(this)
+        } catch(e:Exception) {
+            return@toBoolean false
+        }
+    } ?: let {return@toBoolean false}
+}
+
+/**
+ * 返回字符串长度
+ * @return null返回0，其他返回自身长度
+ */
+inline fun CharSequence?.length():Int {
+    return this?.length ?: 0
+}
+
+/**
+ * 判断一个字符串是不是数字
+ */
+inline fun CharSequence?.isNumber():Boolean {
+    if(this == null) {
+        return false
+    }
+    val pattern = Pattern.compile("-?[0-9]+.?[0-9]+")
+    val isNum = pattern.matcher(this)
+    return isNum.matches()
 }
 
 /**
