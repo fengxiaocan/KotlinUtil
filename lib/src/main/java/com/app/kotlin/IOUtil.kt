@@ -1,7 +1,7 @@
 package com.app.kotlin
 
 import java.io.*
-import java.lang.StringBuilder
+import kotlin.reflect.KFunction
 
 /**
  * Result<R> 获取结果,如果为空,则返回默认值
@@ -114,16 +114,3 @@ inline fun <T:InputStream?, R:OutputStream?> T?.readToWrite(output:R?):Result<Bo
         closeQuiet()
     }
 }
-
-
-inline fun <T:InputStream?, R:Reader?> T?.readToReader(output:R?):Result<StringBuilder> {
-    return try {
-        Result.success(copyTo(output))
-    } catch(e:Exception) {
-        Result.failure(e)
-    } finally {
-        output.closeQuiet()
-        closeQuiet()
-    }
-}
-

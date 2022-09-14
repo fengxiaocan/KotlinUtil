@@ -415,6 +415,6 @@ inline fun Context.toast(content:CharSequence?) {
 inline fun Context.copy(content:CharSequence?) {
     content?.let {
         val manager:ClipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-        manager.primaryClip = ClipData.newPlainText("text", it)
+        manager.setPrimaryClip(ClipData.newPlainText("text", it))
     }
 }
