@@ -35,12 +35,7 @@ inline fun <T:Any> KClass<T>.new():T? {
  * @return
  */
 inline fun <T> Class<T>.new(parameterTypes:Array<Class<*>?>, parameter:Array<Any?>):T? {
-    try {
-        return this.getConstructor(*parameterTypes).newInstance(*parameter) as T
-    } catch(e:java.lang.Exception) {
-        e.printStackTrace()
-    }
-    return null
+    return kotlin.runCatching {this.getConstructor(*parameterTypes).newInstance(*parameter) as T}.getOrNull()
 }
 
 /**
@@ -50,16 +45,11 @@ inline fun <T> Class<T>.new(parameterTypes:Array<Class<*>?>, parameter:Array<Any
  * @return
  */
 inline fun <T> Class<T>.new(vararg parameter:Any):T? {
-    try {
-        return if(parameter.isNotEmpty()) {
-            this.getConstructor(*arrayOfClass(parameter)).newInstance(*parameter) as T
-        } else {
-            this.getConstructor().newInstance() as T
-        }
-    } catch(e:java.lang.Exception) {
-        e.printStackTrace()
-    }
-    return null
+    return kotlin.runCatching {
+        parameter.isNotEmpty()
+            .condition(getConstructor(*arrayOfClass(parameter)).newInstance(*parameter) as T, this.getConstructor()
+                .newInstance() as T)
+    }.getOrNull()
 }
 
 /**
@@ -70,7 +60,7 @@ inline fun <T:Any> KClass<T>.new(vararg parameter:Any):T? {
 }
 
 /**
- * 把输入的
+ * 参数变为Class数组
  */
 inline fun arrayOfClass(vararg parameter:Any):Array<Class<Any>?> {
     var parameterTypes:Array<Class<Any>?> = arrayOfNulls(parameter.size)
@@ -84,34 +74,48 @@ inline fun arrayOfClass(vararg parameter:Any):Array<Class<Any>?> {
  * 获取Java class
  */
 inline fun <T> T.javaClass():Class<T>? {
-    try {
+    return kotlin.runCatching {
         val t = this as Object
-        return t.javaClass as Class<T>?
-    } catch(e:java.lang.Exception) {
-        e.printStackTrace()
-    }
-    return null
+        t.javaClass as Class<T>?
+    }.getOrNull()
+}
+
+/**
+ * 获取方法
+ *
+ * @param methodName 方法名
+ * @param args 方法参数
+ * @return
+ */
+inline fun <T> T.getKtMethod(methodName:String, vararg args:Any):Method? {
+    return this.javaClass()?.getJavaMethod(methodName, args)
+}
+
+/**
+ * 获取方法
+ *
+ * @param methodName 方法名
+ * @param args 方法参数
+ * @return
+ */
+inline fun <T> Class<T>.getJavaMethod(methodName:String, vararg args:Any):Method? {
+    return kotlin.runCatching {
+        var method:Method = args.isNotEmpty()
+            .condition(getDeclaredMethod(methodName, *arrayOfClass(args)), getDeclaredMethod(methodName))
+        method.isAccessible = true
+        method
+    }.getOrNull()
 }
 
 /**
  * 调用方法
  *
- * @param methodName
+ * @param methodName 方法名
+ * @param args 方法参数
  * @return
  */
-inline fun <T, R> T.invokeMethod(methodName:String, vararg args:Any):R? {
-    try {
-        var method:Method = this.javaClass()!!.getDeclaredMethod(methodName)
-        method.isAccessible = true
-        return if(args.isNotEmpty()) {
-            method.invoke(this, args) as R
-        } else {
-            method.invoke(this) as R
-        }
-    } catch(e:java.lang.Exception) {
-        e.printStackTrace()
-    }
-    return null
+inline fun <T, R> T.invokeKtMethod(methodName:String, vararg args:Any):R? {
+    return this.javaClass()?.invokeJavaMethod(methodName, args)
 }
 
 /**
@@ -122,20 +126,7 @@ inline fun <T, R> T.invokeMethod(methodName:String, vararg args:Any):R? {
  * @return
  */
 inline fun <T, R> Class<T>.invokeJavaMethod(methodName:String, vararg args:Any):R? {
-    try {
-        return if(args.isNotEmpty()) {
-            var method:Method = this.getDeclaredMethod(methodName, *arrayOfClass(args))
-            method.isAccessible = true
-            method.invoke(null, args) as R
-        } else {
-            var method:Method = this.getDeclaredMethod(methodName)
-            method.isAccessible = true
-            method.invoke(null) as R
-        }
-    } catch(e:java.lang.Exception) {
-        e.printStackTrace()
-    }
-    return null
+    return kotlin.runCatching {getJavaMethod(methodName, args)?.invoke(null, args) as R}.getOrNull()
 }
 
 /**
@@ -145,16 +136,9 @@ inline fun <T, R> Class<T>.invokeJavaMethod(methodName:String, vararg args:Any):
  * @param args 方法参数
  * @return
  */
-inline fun <T, R> Class<T>.invokeKotlinMethod(methodName:String, vararg args:Any):R? {
-    val any:Any? = this.getStaticField("Companion")
-    any?.let {
-        return if(args.isNotEmpty()) {
-            any.invokeMethod(methodName, args)
-        } else {
-            any.invokeMethod(methodName)
-        }
-    }
-    return null
+inline fun <T, R> Class<T>.invokeKtMethod(methodName:String, vararg args:Any):R? {
+    val any:Any? = getJavaStaticField("Companion")
+    return any?.invokeKtMethod(methodName, args)
 }
 
 /**
@@ -165,11 +149,7 @@ inline fun <T, R> Class<T>.invokeKotlinMethod(methodName:String, vararg args:Any
  * @return
  */
 inline fun <T:Any, R> KClass<T>.invokeJavaMethod(methodName:String, vararg args:Any):R? {
-    return if(args.isNotEmpty()) {
-        this.java.invokeJavaMethod(methodName, args)
-    } else {
-        this.java.invokeJavaMethod(methodName)
-    }
+    return java.invokeJavaMethod(methodName, args)
 }
 
 /**
@@ -179,12 +159,8 @@ inline fun <T:Any, R> KClass<T>.invokeJavaMethod(methodName:String, vararg args:
  * @param args 方法参数
  * @return
  */
-inline fun <T:Any, R> KClass<T>.invokeKotlinMethod(methodName:String, vararg args:Any):R? {
-    return if(args.isNotEmpty()) {
-        this.java.invokeKotlinMethod(methodName, args)
-    } else {
-        this.java.invokeKotlinMethod(methodName)
-    }
+inline fun <T:Any, R> KClass<T>.invokeKtMethod(methodName:String, vararg args:Any):R? {
+    return java.invokeKtMethod(methodName, args)
 }
 
 /**
@@ -192,15 +168,8 @@ inline fun <T:Any, R> KClass<T>.invokeKotlinMethod(methodName:String, vararg arg
  * @param fieldName
  * @return
  */
-inline fun <T, R> T.getField(fieldName:String):R? {
-    try {
-        val field = this.javaClass()!!.getDeclaredField(fieldName)
-        field.isAccessible = true
-        return field.get(this) as R
-    } catch(e:java.lang.Exception) {
-        e.printStackTrace()
-    }
-    return null
+inline fun <T, R> T.getKtField(fieldName:String):R? {
+    return this.javaClass()?.getJavaField(fieldName)
 }
 
 /**
@@ -208,30 +177,47 @@ inline fun <T, R> T.getField(fieldName:String):R? {
  * @param fieldName
  * @return
  */
-inline fun <T> T.setField(fieldName:String, value:Any?) {
-    try {
-        val field = this.javaClass()!!.getDeclaredField(fieldName)
-        field.isAccessible = true
-        field.set(this, value)
-    } catch(e:java.lang.Exception) {
-        e.printStackTrace()
-    }
+inline fun <T> T.setKtField(fieldName:String, value:Any?):Boolean {
+    return this.javaClass()?.setJavaField(fieldName,value)?:false
 }
 
+/**
+ * 获取成员变量的值
+ * @param fieldName
+ * @return
+ */
+inline fun <T, R> Class<T>.getJavaField(fieldName:String):R? {
+    return kotlin.runCatching {
+        val field = this.getDeclaredField(fieldName)
+        field.isAccessible = true
+        field.get(this) as R
+    }.getOrNull()
+}
+
+/**
+ * 修改成员变量的值
+ * @param fieldName
+ * @return
+ */
+inline fun <T> Class<T>.setJavaField(fieldName:String, value:Any?):Boolean {
+    return kotlin.runCatching {
+        val field = this.getDeclaredField(fieldName)
+        field.isAccessible = true
+        field.set(this, value)
+        true
+    }.getOrDefault(false)
+}
 /**
  * 获取静态成员变量的值
  * @param fieldName
  * @return
  */
-inline fun <T, R> Class<T>.getStaticField(fieldName:String):R? {
-    try {
+inline fun <T, R> Class<T>.getJavaStaticField(fieldName:String):R? {
+    return kotlin.runCatching {
         val field = this.getDeclaredField(fieldName)
         field.isAccessible = true
-        return field.get(this) as R
-    } catch(e:java.lang.Exception) {
-        e.printStackTrace()
-    }
-    return null
+        field.get(this) as R
+    }.getOrNull()
 }
 
 /**
@@ -239,14 +225,13 @@ inline fun <T, R> Class<T>.getStaticField(fieldName:String):R? {
  * @param fieldName
  * @return
  */
-inline fun <T> Class<T>.setStaticField(fieldName:String, value:Any?) {
-    try {
+inline fun <T> Class<T>.setJavaStaticField(fieldName:String, value:Any?):Boolean {
+    return kotlin.runCatching {
         val field = this.getDeclaredField(fieldName)
         field.isAccessible = true
         field.set(this, value)
-    } catch(e:java.lang.Exception) {
-        e.printStackTrace()
-    }
+        true
+    }.getOrDefault(false)
 }
 
 /**
@@ -256,7 +241,7 @@ inline fun <T> Class<T>.setStaticField(fieldName:String, value:Any?) {
  * @return
  */
 inline fun <T:Any, R> KClass<T>.getStaticField(fieldName:String):R? {
-    return this.java.getStaticField(fieldName)
+    return this.java.getJavaStaticField(fieldName)
 }
 
 /**
@@ -264,6 +249,6 @@ inline fun <T:Any, R> KClass<T>.getStaticField(fieldName:String):R? {
  * @param fieldName
  * @return
  */
-inline fun <T:Any> KClass<T>.setStaticField(fieldName:String, value:Any?) {
-    this.java.setStaticField(fieldName, value)
+inline fun <T:Any> KClass<T>.setStaticField(fieldName:String, value:Any?):Boolean {
+    return this.java.setJavaStaticField(fieldName, value)
 }

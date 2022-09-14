@@ -19,12 +19,25 @@ inline fun Long?.lessThanCurrTime():Boolean {
     return this?.let {it < System.currentTimeMillis()} ?: true
 }
 
-
 /**
  * 判断当前时间是否在两个数值之间
  */
 inline fun betweenTime(time1:Long, time2:Long):Boolean {
     return System.currentTimeMillis().between(time1, time2)
+}
+
+/**
+ * 秒数转毫秒数
+ */
+inline fun Long?.secsToMillis():Long {
+    return this ?: 0 * 1000
+}
+
+/**
+ * 获取当前时间的毫秒数
+ */
+inline fun times():Long {
+    return System.currentTimeMillis()
 }
 
 /**
@@ -131,7 +144,6 @@ inline fun Long?.formatTime(type:String):String {
 
 /**
  * 传入对应的时间字符串和对应的时间格式,转化为long类型的时间毫秒值
- * @param date 例如:2016-02-23
  * @param type 时间格式:yyyy-MM-dd
  */
 inline fun String?.formatTime(type:String):Long {

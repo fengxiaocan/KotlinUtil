@@ -13,15 +13,28 @@ import java.util.regex.Pattern
 import kotlin.experimental.and
 
 /**
+ * 如果字符串为空，则返回默认的不为空的字符串
+ * @defaultChar 默认字符串
+ */
+inline fun CharSequence?.noEmpty(defaultChar:CharSequence):CharSequence {
+    return (this.isNotEmpty()).condition(this!!, defaultChar)
+}
+
+/**
+ * 如果字符串为空，则返回默认的不为空的字符串
+ * @defaultChar 默认字符串
+ */
+inline fun String?.noEmpty(defaultChar:String):String {
+    return (this.isNotEmpty()).condition(this!!, defaultChar)
+}
+
+/**
  * 拼接字符串
  */
 inline fun String?.append(vararg array:Any?):String {
-    return StringBuilder(this.orEmpty()).run {
-        array.forEach {
-            it?.let {append(it)}
-        }
-        toString()
-    }
+    return StringBuilder(this.orEmpty()).apply {
+        array.forEach {it?.let {append(it)}}
+    }.toString()
 }
 
 /**
@@ -70,32 +83,16 @@ inline fun String?.contains(vararg agr:String):Boolean {
  * 获取url的后缀
  */
 inline fun String?.urlSuffix():String {
-    return this?.let {
-        val of = it.lastIndexOf('.')
-        if(of > 0) {
-            it.substring(of)
-        } else {
-            ""
-        }
-    } ?: let {
-        ""
-    }
+    val of = this?.lastIndexOf('.') ?: -1
+    return (of > 0).condition(this!!.substring(of), "")
 }
 
 /**
  * 获取url的中的文件名
  */
-inline fun String?.urlFileName(url:String):String? {
-    return this?.let {
-        val of = url.lastIndexOf('/')
-        if(of > 0) {
-            it.substring(of + 1)
-        } else {
-            ""
-        }
-    } ?: let {
-        ""
-    }
+inline fun String?.urlFileName():String? {
+    val of = this?.lastIndexOf('/') ?: -1
+    return (of > 0).condition(this!!.substring(of + 1), "")
 }
 
 /**
@@ -103,20 +100,16 @@ inline fun String?.urlFileName(url:String):String? {
  */
 inline fun join(vararg array:Any?):String {
     return StringBuilder().apply {
-        array.forEach {any ->
-            append(any)
-        }
+        array.forEach {it?.let {append(it)}}
     }.toString()
 }
 
 /**
  * 拼接字符串
  */
-inline fun builder(vararg array:Any?):StringBuilder {
+inline fun stringBuilder(vararg array:Any?):StringBuilder {
     return StringBuilder().apply {
-        array.forEach {any ->
-            append(any)
-        }
+        array.forEach {it?.let {append(it)}}
     }
 }
 
@@ -125,13 +118,9 @@ inline fun builder(vararg array:Any?):StringBuilder {
  * @return int 中文占两个字节,英文1个字节
  */
 inline fun String?.charLength():Int {
-    if(this == null) {
-        return 0
-    }
     var len = 0
-    val chars = this.toCharArray()
-    chars.forEach {
-        len += if(it.toInt() > 255) 2 else 1
+    this?.toCharArray()?.forEach {
+        len += if(it.code > 255) 2 else 1
     }
     return len
 }
@@ -141,13 +130,9 @@ inline fun String?.charLength():Int {
  * @return
  */
 inline fun String?.toInt():Int {
-    this?.let {
-        try {
-            return@toInt Integer.parseInt(this)
-        } catch(e:Exception) {
-            return@toInt 0
-        }
-    } ?: let {return@toInt 0}
+    return kotlin.runCatching {
+        this?.let {Integer.parseInt(it)} ?: 0
+    }.getResult(0)
 }
 
 /**
@@ -155,13 +140,9 @@ inline fun String?.toInt():Int {
  * @return
  */
 inline fun String?.toDouble():Double {
-    this?.let {
-        try {
-            return@toDouble java.lang.Double.parseDouble(this)
-        } catch(e:Exception) {
-            return@toDouble 0.toDouble()
-        }
-    } ?: let {return@toDouble 0.toDouble()}
+    return kotlin.runCatching {
+        this?.let {java.lang.Double.parseDouble(it)} ?: 0.0
+    }.getResult(0.0)
 }
 
 /**
@@ -169,29 +150,19 @@ inline fun String?.toDouble():Double {
  * @return
  */
 inline fun String?.toLong():Long {
-    this?.let {
-        try {
-            return@toLong java.lang.Long.parseLong(this)
-        } catch(e:Exception) {
-            return@toLong 0.toLong()
-        }
-    } ?: let {return@toLong 0.toLong()}
+    return kotlin.runCatching {
+        this?.let {java.lang.Long.parseLong(it)} ?: 0L
+    }.getResult(0L)
 }
 
 /**
  * 字符串转布尔
- *
- * @param b
  * @return 转换异常返回 false
  */
 inline fun String?.toBoolean():Boolean {
-    this?.let {
-        try {
-            return@toBoolean java.lang.Boolean.parseBoolean(this)
-        } catch(e:Exception) {
-            return@toBoolean false
-        }
-    } ?: let {return@toBoolean false}
+    return kotlin.runCatching {
+        this?.let {java.lang.Boolean.parseBoolean(it)} ?: false
+    }.getResult(false)
 }
 
 /**
@@ -206,9 +177,7 @@ inline fun CharSequence?.length():Int {
  * 判断一个字符串是不是数字
  */
 inline fun CharSequence?.isNumber():Boolean {
-    if(this == null) {
-        return false
-    }
+    if(this == null) return false
     val pattern = Pattern.compile("-?[0-9]+.?[0-9]+")
     val isNum = pattern.matcher(this)
     return isNum.matches()
@@ -274,58 +243,43 @@ inline fun String?.sha512Hex():String {
  * 获取字符串的Base64
  */
 inline fun String?.encodeBase64():String {
-    if(this == null) return ""
-    return Base64.encodeToString(this.toByteArray(), Base64.DEFAULT)
+    return this?.let {Base64.encodeToString(this.toByteArray(), Base64.DEFAULT)} ?: ""
 }
 
 /**
  * 获取字符串的Base64
  */
 inline fun String?.decodeBase64():String {
-    if(this == null) return ""
-    return toByteArray().decodeBase64()
+    return this?.let {toByteArray().decodeBase64()} ?: ""
 }
 
 /**
  * 获取字符串的Base64
  */
 inline fun ByteArray?.decodeBase64():String {
-    if(this == null) return ""
-    return Base64.decode(this, Base64.DEFAULT).toString(Charsets.UTF_8)
+    return this?.let {Base64.decode(this, Base64.DEFAULT).toString(Charsets.UTF_8)} ?: ""
 }
 
 /**
  * 把字符串加密
  */
 inline fun String?.codeHex(charset:Charset, algorithm:String):String {
-    if(this == null) {
-        return ""
-    }
-    val btInput = this.toByteArray(charset)
-    return try {
-        //获得MD5摘要算法的 MessageDigest 对象
-        val mdInst = MessageDigest.getInstance(algorithm)
-        //使用指定的字节更新摘要
-        mdInst.update(btInput)
-        //获得密文
-        val md = mdInst.digest()
-        //把密文转换成十六进制的字符串形式
+    if(this == null) return ""
+    return kotlin.runCatching {
+        val btInput = this.toByteArray(charset)
+        val mdInst = MessageDigest.getInstance(algorithm) //使用指定的字节更新摘要
+        mdInst.update(btInput) //获得密文
+        val md = mdInst.digest() //把密文转换成十六进制的字符串形式
         md.toHex()
-    } catch(e:Exception) {
-        e.printStackTrace()
-        ""
-    }
+    }.getResult("")
 }
 
 /**
  * 把Byte数组转换成16进制字符串
  */
 inline fun ByteArray?.toHex():String {
-    if(this == null) {
-        return ""
-    }
-    val bytes = this
-    val len = bytes.size
+    if(this == null) return ""
+    val len = this.size
     if(len <= 0) {
         return ""
     }
@@ -334,8 +288,8 @@ inline fun ByteArray?.toHex():String {
     var i = 0
     var j = 0
     while(i < len) {
-        ret[j++] = hexDigits[(bytes[i].toInt().ushr(4)) and 0xF]
-        ret[j++] = hexDigits[(bytes[i] and 0xF).toInt()]
+        ret[j++] = hexDigits[(this[i].toInt().ushr(4)) and 0xF]
+        ret[j++] = hexDigits[(this[i] and 0xF).toInt()]
         i++
     }
     return String(ret)
@@ -345,64 +299,44 @@ inline fun ByteArray?.toHex():String {
  * 字符串转换unicode
  */
 inline fun String?.toUnicode():String {
-    if(this == null) {
-        return ""
-    }
-    try {
-        val unicode = StringBuffer()
-        forEach {
-            // 取出每一个字符转换为unicode
-            val hexString = Integer.toHexString(it.toInt())
+    if(this == null) return ""
+    return kotlin.runCatching {
+        StringBuffer().onEach { // 取出每一个字符转换为unicode
+            val hexString = Integer.toHexString(it.code)
             when(hexString.length) {
-                1 -> unicode.append("\\u000$hexString")
-                2 -> unicode.append("\\u00$hexString")
-                3 -> unicode.append("\\u0$hexString")
-                else -> unicode.append("\\u$hexString")
+                1 -> append("\\u000$hexString")
+                2 -> append("\\u00$hexString")
+                3 -> append("\\u0$hexString")
+                else -> append("\\u$hexString")
             }
-        }
-        return unicode.toString()
-    } catch(e:java.lang.Exception) {
-        e.printStackTrace()
-        return ""
-    }
+        }.toString()
+    }.getResult("")
 }
 
 /**
  * unicode 转字符串
  */
 inline fun String?.fromUnicode():String {
-    if(this == null) {
-        return ""
-    }
-    return let {
+    if(this == null) return ""
+    return StringBuffer().apply {
         val hex = split("\\\\u".toRegex()).toTypedArray()
-        val string = StringBuffer()
         for(i in hex.indices) {
-            try {
-                // 转换出每一个代码点
-                val data = hex[i].toInt(16)
-                // 追加成string
-                string.append(data.toChar())
-            } catch(e:java.lang.Exception) {
-                string.append(hex[i])
-            }
+            append(kotlin.runCatching {
+                val data = hex[i].toInt(16) // 追加成string
+                data.toChar()
+            }.getResult(hex[i]))
         }
-        string.toString()
-    }
+    }.toString()
 }
 
 /**
  * URL解码
  */
 inline fun String?.decodeURL(charset:String?):String {
-    if(this == null) {
-        return ""
-    }
-    return try {
+    if(this == null) return ""
+    return kotlin.runCatching {
         URLDecoder.decode(this, charset)
-    } catch(e:Exception) {
-        this
-    }
+    }.getResult("")
 }
 
 /**
@@ -416,14 +350,10 @@ inline fun String?.decodeURL():String {
  * URL加密
  */
 inline fun String?.encodeURL(charset:String?):String {
-    if(this == null) {
-        return ""
-    }
-    return try {
+    if(this == null) return ""
+    return kotlin.runCatching {
         URLEncoder.encode(this, charset)
-    } catch(e:Exception) {
-        this
-    }
+    }.getResult("")
 }
 
 /**
@@ -431,27 +361,4 @@ inline fun String?.encodeURL(charset:String?):String {
  */
 inline fun String?.encodeURL():String {
     return this.encodeURL("UTF-8")
-}
-
-/**
- * 弹个Toast出来
- */
-inline fun CharSequence?.toast(context:Context?) {
-    this?.let {msg ->
-        context?.let {con ->
-            Toast.makeText(con, msg, Toast.LENGTH_SHORT).show()
-        }
-    }
-}
-
-/**
- * 复制文本到粘贴板
- */
-inline fun CharSequence?.copy(context:Context?) {
-    this?.let {msg ->
-        context?.let {con ->
-            val manager:ClipboardManager = con.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            manager.setPrimaryClip(ClipData.newPlainText("text", msg))
-        }
-    }
 }

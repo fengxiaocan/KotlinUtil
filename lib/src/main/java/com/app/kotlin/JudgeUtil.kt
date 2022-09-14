@@ -92,16 +92,17 @@ inline fun <T> T?.isNotEmpty(): Boolean {
  * @return
  */
 inline fun <T> T?.unequals(vararg values: T?): Boolean {
-    if (this == null) {
+    return this?.let {
         values.forEach {
-            if (it == null) return@unequals false
+            if(it?.equals(this) == true) return@unequals false
+        }
+        return true
+    }?:let {
+        values.forEach {
+            if(it == null) return@unequals false
         }
         return true
     }
-    values.forEach {
-        if (it?.equals(this) == true) return@unequals false
-    }
-    return true
 }
 
 

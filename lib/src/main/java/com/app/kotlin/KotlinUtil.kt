@@ -15,8 +15,8 @@ inline fun <T> T?.orNull(block: () -> T): T {
  * 用于获取对象的值等
  * val size = orNull(array,{array.size},0)
  */
-inline fun <T, R> R?.nonNull(block: R.(R) -> T, default: T): T {
-    return this?.let { it.block(this) } ?: default
+inline fun <T, R> R?.nonNull(block: (R) -> T, default: T): T {
+    return this?.let { block(this) } ?: default
 }
 
 /**
@@ -24,8 +24,8 @@ inline fun <T, R> R?.nonNull(block: R.(R) -> T, default: T): T {
  * 用于获取对象的值等
  * val size = orNull(array,{array.size},{19})
  */
-inline fun <T, R> R?.nonNull(block: R.(R) -> T, default: () -> T): T {
-    return this?.let { it.block(this) } ?: default()
+inline fun <T, R> R?.nonNull(block: (R) -> T, default: () -> T): T {
+    return this?.let { block(this) } ?: default()
 }
 
 /**
